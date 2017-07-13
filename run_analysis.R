@@ -7,7 +7,34 @@ source("stats.R")
 source("aes.R")
 source("functions.R")
 
-if(FALSE){#example of how to use the library
+SAMPLE_LIBRARY <- FALSE
+LOAD_DATA <- FALSE
+PLOT_DENSITY <- FALSE
+PLOT_SCALING <- TRUE
+
+#performance_measurements = c('energy_nanojoules')
+#                             'L1_data_cache_miss_rate',
+#                             'L2_data_cache_miss_rate',
+#                             'L3_total_cache_miss_rate')
+
+performance_measurements = c('time',
+                             'instructions_per_cycle',
+#                             'L1_data_cache_request_rate',
+                             'L1_data_cache_miss_rate',
+#                             'L1_data_cache_miss_ratio',
+                             'L2_data_cache_request_rate',
+                             'L2_data_cache_miss_rate',
+                             'L2_data_cache_miss_ratio',
+                             'L3_total_cache_request_rate',
+                             'L3_total_cache_miss_rate',
+                             'L3_total_cache_miss_ratio',
+                             'data_translation_lookaside_buffer_miss_rate',
+                             'branch_rate',
+                             'branch_misprediction_rate',
+                             'branch_misprediction_ratio',
+                             'energy_nanojoules')
+
+if(SAMPLE_LIBRARY){#example of how to use the library
     data.test_study <-  ReadAllFilesInDir.Aggregate(dir.path="test_data/", col=c("size", "region", "id", "time", "overhead"))
     data.test_summary <- CalculateDataSummary(data=data.test_study, measurevar="time", groupvars=c("region"), conf.interval=.95, quantile.interval=.95)
     data.shapiro <- lsb_shapiro(data.test_study,'time')
@@ -45,27 +72,10 @@ if(FALSE){#example of how to use the library
 #    print(lsb_density(region,'time','Time (us)'))
 #    dev.off()
 #}
-#performance_measurements = c('energy_nanojoules',
-#                             'L1_data_cache_miss_rate',
-#                             'L2_data_cache_miss_rate',
-#                             'L3_total_cache_miss_rate')
 
-performance_measurements = c('time',
-                             'instructions_per_cycle',
-#                             'L1_data_cache_request_rate',
-                             'L1_data_cache_miss_rate',
-#                             'L1_data_cache_miss_ratio',
-                             'L2_data_cache_request_rate',
-                             'L2_data_cache_miss_rate',
-                             'L2_data_cache_miss_ratio',
-                             'L3_total_cache_request_rate',
-                             'L3_total_cache_miss_rate',
-                             'L3_total_cache_miss_ratio',
-                             'data_translation_lookaside_buffer_miss_rate',
-                             'branch_rate',
-                             'branch_misprediction_rate',
-                             'branch_misprediction_ratio',
-                             'energy_nanojoules')
+#load all datasets
+if(LOAD_DATA){
+
 all_kmeans_columns <- c("region","number_of_objects","number_of_features",
                         "iteration_number_hint_until_convergence","id", "time","overhead")
 
@@ -102,8 +112,6 @@ papi_event_columns.energy_nanojoules                <-
     append(all_kmeans_columns,c("rapl:::PP0_ENERGY:PACKAGE0",
                                 "rapl:::DRAM_ENERGY:PACKAGE0"))
 
-#load all datasets
-if(FALSE){
 for (performance_measurement in performance_measurements){
     #path <- paste("./hyperthreading_analysis/dense_dataset/3.20GHz/no_hyperthreading_4_threads_core_i7_960/kmeans_default_",
     #              performance_measurement,
@@ -170,16 +178,21 @@ for (performance_measurement in performance_measurements){
                                        col=eval(parse(text=paste('papi_event_columns.',performance_measurement,sep='')))))
 }}
 
-#for(n_cluster in seq(1,14)){
-{n_cluster = 14
+for(n_cluster in seq(1,14)){
+#{n_cluster = 14
     for (performance_measurement in performance_measurements){
-
-        path <- paste("./kmeans_scaling_by_increasing_maximum_clusters/results/kmeans_",
+        path <- paste("./kmeans_scaling_by_increasing_maximum_clusters/coarse_energy_results/kmeans_",
                       n_cluster,
                       "_max_clusters_",
                       performance_measurement,
                       ".0/",
                       sep="")
+        #path <- paste("./kmeans_scaling_by_increasing_maximum_clusters/results/kmeans_",
+        #              n_cluster,
+        #              "_max_clusters_",
+        #              performance_measurement,
+        #              ".0/",
+        #              sep="")
         assign(paste("data.",performance_measurement,sep=""),
                ReadAllFilesInDir.Aggregate(dir.path=path,
                                            col=eval(parse(text=paste('papi_event_columns.',performance_measurement,sep='')))))
@@ -189,7 +202,7 @@ for (performance_measurement in performance_measurements){
     }
 }
 
-if(TRUE){#density plots
+if(PLOT_DENSITY){#density plots
 #TODO:
 #   - show normality of the kmeans_kernel at each cluster size.
 #   - organised the data over an increasing maximum number of clusters.
@@ -490,7 +503,7 @@ for (performance_measurement in performance_measurements){
     }
 }}
 
-if(FALSE){ #Scaling 
+if(PLOT_SCALING){ #Scaling 
 data.energy_nanojoules <- data.frame()
 data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_1.energy_nanojoules,'cluster_size' = 1))
 data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_2.energy_nanojoules,'cluster_size' = 2))
@@ -502,14 +515,23 @@ data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_
 data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_8.energy_nanojoules,'cluster_size' = 8))
 data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_9.energy_nanojoules,'cluster_size' = 9))
 data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_10.energy_nanojoules,'cluster_size' = 10))
+data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_10.energy_nanojoules,'cluster_size' = 11))
+data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_10.energy_nanojoules,'cluster_size' = 12))
+data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_10.energy_nanojoules,'cluster_size' = 13))
+data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_10.energy_nanojoules,'cluster_size' = 14))
 
 data.energy_joules <- data.energy_nanojoules
 data.energy_joules$rapl...PP0_ENERGY.PACKAGE0 <- data.energy_joules$rapl...PP0_ENERGY.PACKAGE0*10^-9
 data.energy_joules$rapl...DRAM_ENERGY.PACKAGE0 <- data.energy_joules$rapl...DRAM_ENERGY.PACKAGE0*10^-9
 
-kernel <- data.energy_joules[which(data.energy_joules$region == 'kmeans_kernel'),]
+kernel <- data.energy_joules[which(data.energy_joules$region == 'kmeansCuda'),]
 
 #ggplot(kernel, aes(x=factor(cluster_size), y=time)) + stat_summary(fun.y="median", geom="line")
 #ggplot(kernel, aes(x=factor(cluster_size), y=time)) + stat_summary(fun.y="median", geom="line",aes(group = 1))
-ggplot(kernel, aes(x=factor(cluster_size), y=rapl...PP0_ENERGY.PACKAGE0)) + stat_summary(fun.y="median", geom="line",aes(group = 1))
+pdf('energy_vs_cluster_count.pdf')
+p <- ggplot(kernel, aes(x=factor(cluster_size), y=rapl...PP0_ENERGY.PACKAGE0)) +
+    stat_summary(fun.y="median", geom="line",aes(group = 1)) +
+    ylab('Energy (J)') + xlab('Maximum Number of Clusters')
+print(p)
+dev.off()
 }
