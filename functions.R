@@ -109,4 +109,26 @@ lsb_qr <- function(data1, col1, data2, col2){
     plot(summary(rq(a~b,tau = 1:49/50,data=data_merged)))
 }
 
+directory_generator <- function(directory_path,directory_range){
+    directories <- data.frame()
+    for (i in directory_range){
+       directories <-
+           rbind(directories,data.frame("name"=gsub('##',i,directory_path),"size"=i))
+    }
+    return(directories)
+}
 
+load_directories_from_generator <- function(directories,lsb_event_columns){
+    big_df <- data.frame()
+    for(i in seq(1,nrow(directories))){
+        df <- ReadAllFilesInDir.Aggregate(dir.path=as.character(directories[i,]$name),col=lsb_event_columns)
+        df <- cbind(df,"size"=as.numeric(directories[i,]$size))
+        big_df <- rbind(big_df,df)
+    }
+    return(big_df)
+}
+
+load_directories <- function(directory_path,directory_range,lsb_event_columns){
+    directory_list <- directory_generator(directory_path,directory_range)
+    return(load_directories_from_generator(directory_list,lsb_event_columns))
+}

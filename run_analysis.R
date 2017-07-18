@@ -10,7 +10,10 @@ source("functions.R")
 SAMPLE_LIBRARY <- FALSE
 LOAD_DATA <- FALSE
 PLOT_DENSITY <- FALSE
-PLOT_SCALING <- TRUE
+PLOT_ENERGY_SCALING <- FALSE
+PLOT_L1_SCALING <- FALSE
+PLOT_L2_SCALING <- FALSE
+PLOT_L3_SCALING <- TRUE
 
 #performance_measurements = c('energy_nanojoules')
 #                             'L1_data_cache_miss_rate',
@@ -73,9 +76,6 @@ if(SAMPLE_LIBRARY){#example of how to use the library
 #    dev.off()
 #}
 
-#load all datasets
-if(LOAD_DATA){
-
 all_kmeans_columns <- c("region","number_of_objects","number_of_features",
                         "iteration_number_hint_until_convergence","id", "time","overhead")
 
@@ -111,7 +111,8 @@ papi_event_columns.branch_misprediction_ratio       <-
 papi_event_columns.energy_nanojoules                <-
     append(all_kmeans_columns,c("rapl:::PP0_ENERGY:PACKAGE0",
                                 "rapl:::DRAM_ENERGY:PACKAGE0"))
-
+#load all datasets
+if(LOAD_DATA){
 for (performance_measurement in performance_measurements){
     #path <- paste("./hyperthreading_analysis/dense_dataset/3.20GHz/no_hyperthreading_4_threads_core_i7_960/kmeans_default_",
     #              performance_measurement,
@@ -186,7 +187,8 @@ for(n_cluster in seq(1,14)){
                       "_max_clusters_",
                       performance_measurement,
                       ".0/",
-                      sep="")
+                      sep="") 
+
         #path <- paste("./kmeans_scaling_by_increasing_maximum_clusters/results/kmeans_",
         #              n_cluster,
         #              "_max_clusters_",
@@ -503,7 +505,7 @@ for (performance_measurement in performance_measurements){
     }
 }}
 
-if(PLOT_SCALING){ #Scaling 
+if(PLOT_ENERGY_SCALING){ #Scaling 
 data.energy_nanojoules <- data.frame()
 data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_1.energy_nanojoules,'cluster_size' = 1))
 data.energy_nanojoules <- rbind(data.energy_nanojoules, cbind(data.cluster_size_2.energy_nanojoules,'cluster_size' = 2))
@@ -534,4 +536,137 @@ p <- ggplot(kernel, aes(x=factor(cluster_size), y=rapl...PP0_ENERGY.PACKAGE0)) +
     ylab('Energy (J)') + xlab('Maximum Number of Clusters')
 print(p)
 dev.off()
+pdf('time_vs_cluster_count.pdf')
+p <- ggplot(kernel, aes(x=factor(cluster_size), y=time)) +
+    stat_summary(fun.y="median", geom="line",aes(group = 1)) +
+    ylab('Time (us)') + xlab('Maximum Number of Clusters')
+print(p)
+dev.off()
+
+}
+
+if(PLOT_L1_SCALING){ #Scaling 
+    miss_rate <- load_directories("./fitting_problem_for_L1_cache_powersave/results/kmeans_##_sized_matrix_L1_data_cache_miss_rate.0/",
+                                  seq(230,250),
+                                  papi_event_columns.L1_data_cache_miss_rate)
+
+    #just the compute region
+    miss_rate <- subset(miss_rate,region=='kmeans_kernel')
+
+    miss_rate$L1_data_cache_miss_rate <-
+        miss_rate$PAPI_L1_DCM/miss_rate$PAPI_TOT_INS
+
+    #plot densities (for each problem size)
+    for (i in seq(230,250)){
+        region <- subset(miss_rate,size==i)
+        pdf(paste("L1_time_density_at_",i,"_objects.pdf",sep=""))
+        print(lsb_density(region,
+                          'time',
+                          'Time (us)',
+                          use_median=TRUE))
+        dev.off()
+        pdf(paste("L1_miss_rate_density_at_",i,"_objects.pdf",sep=""))
+        print(lsb_density(region,
+                          'L1_data_cache_miss_rate',
+                          'L1 Data Cache Miss Rate (miss/inst)',
+                          use_median=TRUE))
+        dev.off()
+    }
+
+    pdf('L1_scaling_time.pdf')
+    p <- ggplot(miss_rate, aes(x=factor(size), y=time)) +
+        stat_summary(fun.y="median", geom="line",aes(group = 1)) +
+        ylab('Time (us)') + xlab('Number of Objects')
+    print(p)
+    dev.off()
+    pdf('L1_miss_rate_scaling.pdf')
+    p <- ggplot(miss_rate, aes(x=factor(size), y=L1_data_cache_miss_rate)) +
+        stat_summary(fun.y="median", geom="line",aes(group = 1)) +
+        ylab('Cache Miss Rate % (miss/inst)') + xlab('Number of Objects')
+    print(p)
+    dev.off()
+}
+
+if(PLOT_L2_SCALING){ #Scaling 
+    miss_rate <- load_directories("./fitting_problem_for_L2_cache/results/kmeans_##_sized_matrix_L2_data_cache_miss_rate.0/",
+                                  seq(460,480),
+                                  papi_event_columns.L2_data_cache_miss_rate)
+
+    #just the compute region
+    miss_rate <- subset(miss_rate,region=='kmeans_kernel')
+
+    miss_rate$L2_data_cache_miss_rate <-
+        miss_rate$PAPI_L2_DCM/miss_rate$PAPI_TOT_INS
+
+    #plot densities (for each problem size)
+    for (i in seq(460,480)){
+        region <- subset(miss_rate,size==i)
+        pdf(paste("L2_time_density_at_",i,"_objects.pdf",sep=""))
+        print(lsb_density(region,
+                          'time',
+                          'Time (us)',
+                          use_median=TRUE))
+        dev.off()
+        pdf(paste("L2_miss_rate_density_at_",i,"_objects.pdf",sep=""))
+        print(lsb_density(region,
+                          'L2_data_cache_miss_rate',
+                          'L2 Data Cache Miss Rate (miss/inst)',
+                          use_median=TRUE))
+        dev.off()
+        
+    }
+
+    pdf('L2_scaling_time.pdf')
+    p <- ggplot(miss_rate, aes(x=factor(size), y=time)) +
+        stat_summary(fun.y="median", geom="line",aes(group = 1)) +
+        ylab('Time (us)') + xlab('Number of Objects')
+    print(p)
+    dev.off()
+    pdf('L2_miss_rate_scaling.pdf')
+    p <- ggplot(miss_rate, aes(x=factor(size), y=L2_data_cache_miss_rate)) +
+        stat_summary(fun.y="median", geom="line",aes(group = 1)) +
+        ylab('Cache Miss Rate % (miss/inst)') + xlab('Number of Objects')
+    print(p)
+    dev.off()
+}
+
+if(PLOT_L3_SCALING){ #Scaling 
+    miss_rate <- load_directories("./fitting_problem_for_L3_cache/results/kmeans_##_sized_matrix_L3_total_cache_miss_rate.0/",
+                                  seq(3980,4019),
+                                  papi_event_columns.L3_total_cache_miss_rate)
+
+    #just the compute region
+    miss_rate <- subset(miss_rate,region=='kmeans_kernel')
+    miss_rate$L3_total_cache_miss_rate <-
+        miss_rate$PAPI_L3_TCM/miss_rate$PAPI_TOT_INS
+
+    #plot densities (for each problem size)
+    for (i in seq(3980,4019)){
+        region <- subset(miss_rate,size==i)
+        pdf(paste("L3_time_density_at_",i,"_objects.pdf",sep=""))
+        print(lsb_density(region,
+                          'time',
+                          'Time (us)',
+                          use_median=TRUE))
+        dev.off()
+        pdf(paste("L3_miss_rate_density_at_",i,"_objects.pdf",sep=""))
+        print(lsb_density(region,
+                          'L3_total_cache_miss_rate',
+                          'L3 Total Cache Miss Rate (miss/inst)',
+                          use_median=TRUE))
+        dev.off()
+    }
+
+    pdf('L3_scaling_time.pdf')
+    p <- ggplot(miss_rate, aes(x=factor(size), y=time)) +
+        stat_summary(fun.y="median", geom="line",aes(group = 1)) +
+        ylab('Time (us)') + xlab('Number of Objects')
+    print(p)
+    dev.off()
+    pdf('L3_miss_rate_scaling.pdf')
+    p <- ggplot(miss_rate, aes(x=factor(size), y=L3_total_cache_miss_rate)) +
+        stat_summary(fun.y="median", geom="line",aes(group = 1)) +
+        ylab('Cache Miss Rate % (miss/inst)') + xlab('Number of Objects')
+    print(p)
+    dev.off()
 }
