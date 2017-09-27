@@ -192,6 +192,33 @@ nWayMerge <-function(list, tables.IDs=names(list)){
   table <- rbindlist(l=list)
   return(table)
 }
+
+# Read all the files in a specific directory, for each file
+# separate NA values (NANA -> NA NA) and replace the original
+SeparateAllNAsInFilesInDir <- function(dir.path){
+    dir.files <- list.files(path=dir.path)
+    for(file in dir.files){
+        file.path <- paste( dir.path, file , sep="")
+        x <- readLines(file.path)
+        y <- gsub( "NA", "NA ", x )
+        cat(y, file=file.path, sep="\n")
+    }
+}
+
+ReadAllFilesInDir.AggregateWithRunIndex <- function(dir.path=NA, col=NA, pheader=TRUE){
+  dir.files <- list.files(path=dir.path)
+  table <- NULL
+  run_index <- 1
+  for(file in dir.files){
+    file.path <- paste( dir.path, file , sep="")
+    in.table <- read.table( file.path , header=pheader, col.names=col)
+    in.table$run <- run_index
+    run_index <- run_index+1
+    table <- rbind(table, in.table) 
+  }
+  return(table)
+}
+
 #######################################################################################
 # File readers section
 #######################################################################################
