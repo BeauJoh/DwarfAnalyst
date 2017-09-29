@@ -132,7 +132,6 @@ if (!exists("data.all")){
         for(size in sizes){
             x <- data.kmeans[data.kmeans$region=="kmeans_kernel" & data.kmeans$device == device & data.kmeans$size == size,]
             x <- SumPerRunReduction(x)
-            browser()
             data.all <- rbind(data.all,data.frame('application'='kmeans',
                                                   'device'=device,
                                                   'size'=size,
